@@ -22,7 +22,8 @@ class Project(models.Model):
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE,
+        related_name='authored_projects')
     created_time = models.DateTimeField(
         auto_now_add=True)
 
@@ -104,7 +105,7 @@ class Issue(models.Model):
     ]
     TAG_CHOICES = [
         ('BUG', 'Bug'),
-        ('Feature', 'Fonctionnalité'),
+        ('FEATURE', 'Fonctionnalité'),
         ('TASK', 'Tâche')
     ]
 

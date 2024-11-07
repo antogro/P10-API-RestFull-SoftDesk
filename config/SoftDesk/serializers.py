@@ -7,29 +7,25 @@ from authentication.serializers import UserSerializer
 class ContributorSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        write_only=True,
-        queryset=User.objects.all(),
-        source='user'
+        write_only=True, queryset=User.objects.all(), source="user"
     )
 
     class Meta:
         model = Contributor
         fields = [
-            'id',
-            'user',
-            'user_id',
-            'project',
-            'permission',
-            'role',
-        ]
-        read_only_fields = ['id']
-        extra_kwargs = {'project': {'required': False}}
+            "id",
+            "user",
+            "user_id",
+            "project",
+            "permission",
+            "role"]
+        read_only_fields = ["id"]
+        extra_kwargs = {"project": {"required": False}}
 
     def validate(self, data):
-
-        if data.get('role') == 'AUTHOR' and data.get('permission') != 'WRITE':
+        if data.get("role") == "AUTHOR" and data.get("permission") != "WRITE":
             raise serializers.ValidationError(
-                'Un auteur doit avoir la permission d\'écrire'
+                "Un auteur doit avoir la permission d'écrire"
             )
         return data
 
@@ -40,14 +36,14 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id',
-            'title',
-            'description',
-            'author',
-            'type',
-            'created_time'
+            "id",
+            "title",
+            "description",
+            "author",
+            "type",
+            "created_time"
         ]
-        read_only_fields = ['id', 'created_time']
+        read_only_fields = ["id", "created_time"]
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
@@ -57,48 +53,48 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id',
-            'title',
-            'description',
-            'type',
-            'author',
-            'contributors',
-            'created_time',
+            "id",
+            "title",
+            "description",
+            "type",
+            "author",
+            "contributors",
+            "created_time",
         ]
-        read_only_fields = ['id', 'created_time']
-
-    def create(self, validated_data):
-        project = super().create(validated_data)
-        Contributor.objects.create(
-            user=validated_data['author'],
-            project=project,
-            role='AUTHOR',
-            permission='WRITE',
-        )
-        return project
+        read_only_fields = [
+            "id",
+            "created_time"
+        ]
 
 
 class IssueListSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     assigne = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    project = serializers.PrimaryKeyRelatedField(read_only=True)
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        write_only=True
+    )
 
     class Meta:
         model = Issue
         fields = [
-            'id',
-            'title',
-            'author',
-            'assigne',
-            'created_time',
-            'status',
-            'priority',
-            ]
-        read_only_fields = ['id', 'created_time']
+            "id",
+            "title",
+            "author",
+            "assigne",
+            "created_time",
+            "status",
+            "project",
+            "priority",
+        ]
+        read_only_fields = [
+            "id",
+            "created_time"
+        ]
 
     def validate_assigne(self, data):
-        project = self.context['project']
-        if not project.contributors.filter(user=data).exists():
+        project = self.context.get("project")
+        if project and not project.contributors.filter(user=data).exists():
             raise serializers.ValidationError(
                 "L'utilisateur assigné doit être un contributeur du projet"
             )
@@ -113,21 +109,22 @@ class IssueDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = [
-            'id',
-            'title',
-            'description',
-            'assigne',
-            'project',
-            'priority',
-            'status',
-            'created_time',
-            'tag'
+            "id",
+            "title",
+            "description",
+            'author',
+            "assigne",
+            "project",
+            "priority",
+            "status",
+            "created_time",
+            "tag",
         ]
-        read_only_fields = ['id', 'created_time']
+        read_only_fields = ["id", "created_time"]
 
     def validate_assigne(self, data):
-        project = self.context['project']
-        if not project.contributors.filter(user=data).exists():
+        project = self.context.get("project")
+        if project and not project.contributors.filter(user=data).exists():
             raise serializers.ValidationError(
                 "L'utilisateur assigné doit être un contributeur du projet"
             )
@@ -141,18 +138,18 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            'id',
-            'description',
-            'author',
-            'issue',
-            'created_time',
-            'uuid',
+            "id",
+            "description",
+            "author",
+            "issue",
+            "created_time",
+            "uuid"
         ]
-        read_only_fields = ['id', 'created_time', 'uuid']
+        read_only_fields = ["id", "created_time", "uuid"]
 
     def validate_author(self, data):
-        project = self.context['project']
-        if not project.contributors.filter(user=data).exists():
+        project = self.context.get("project")
+        if project and not project.contributors.filter(user=data).exists():
             raise serializers.ValidationError(
                 "L'auteur doit être un contributeur du projet"
             )
