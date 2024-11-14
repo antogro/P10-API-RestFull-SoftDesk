@@ -7,8 +7,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
+            'username'
+            ]
+        read_only_fields = ['id']
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
             'username',
-            'can_be_contated',
+            'can_be_contacted',
             'can_data_be_shared',
             'age',
             ]
@@ -22,7 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             'username',
             'email',
             'password',
-            'can_be_contated',
+            'can_be_contacted',
             'can_data_be_shared',
             'age',
             ]
@@ -32,7 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            can_be_contated=validated_data['can_be_contated'],
+            can_be_contacted=validated_data['can_be_contacted'],
             can_data_be_shared=validated_data['can_data_be_shared'],
             age=validated_data['age'],
             password=validated_data['password']

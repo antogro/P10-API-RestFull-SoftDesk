@@ -7,6 +7,13 @@ import uuid
 
 
 class Project(models.Model):
+    """
+    Projet SoftDesk regroupant des issues et contributeurs.
+
+    L'auteur est unique et supprimé en cascade. Le type peut être
+    BACKEND, FRONTEND, IOS ou ANDROID.
+    """
+
     TYPE_CHOICES = [
         ('BACKEND', 'Back-end'),
         ('FRONTEND', 'Front-end'),
@@ -27,23 +34,17 @@ class Project(models.Model):
     created_time = models.DateTimeField(
         auto_now_add=True)
 
-    class Meta:
-        constraints = [
-            UniqueConstraint(
-                fields=['title', 'author'],
-                name='unique_project_per_author'
-            )
-        ]
-
     def __str__(self):
         return self.title
 
 
 class Contributor(models.Model):
-    PERMISSION_CHOICES = [
-        ('READ', 'Lecture'),
-        ('WRITE', 'Écriture')
-    ]
+    """
+    Association entre un utilisateur et un projet avec un rôle.
+
+    Chaque projet a un unique auteur et peut avoir plusieurs contributeurs.
+    Un utilisateur ne peut contribuer qu'une fois par projet.
+    """
     ROLE_CHOICE = [
         ('AUTHOR', 'Auteur'),
         ('CONTRIBUTOR', 'Contributeur')
@@ -57,11 +58,6 @@ class Contributor(models.Model):
         Project,
         on_delete=models.CASCADE,
         related_name='contributors'
-    )
-    permission = models.CharField(
-        max_length=5,
-        choices=PERMISSION_CHOICES,
-        default='READ'
     )
     role = models.CharField(
         max_length=11,
@@ -85,14 +81,15 @@ class Contributor(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.project.title}"
 
-    def clean(self):
-        if self.role == 'AUTHOR' and self.permission != 'WRITE':
-            raise ValidationError(
-                'Un auteur doit avoir la permission d\'écrire'
-                )
-
 
 class Issue(models.Model):
+    """
+    Problème ou tâche à réaliser dans un projet.
+
+    Assignée à un contributeur du projet, avec une priorité (LOW/MEDIUM/HIGH),
+    un statut (TODO/IN_PROGRESS/FINISHED) et un type (BUG/FEATURE/TASK).
+    """
+
     PRIORITY_CHOICES = [
         ('LOW', 'Faible'),
         ('MEDIUM', 'Moyen'),
@@ -139,29 +136,29 @@ class Issue(models.Model):
     tag = models.CharField(
         max_length=7,
         choices=TAG_CHOICES,
-        default='Task'
+        default='TASK'
     )
 
     created_time = models.DateTimeField(
         auto_now_add=True)
 
-    class Meta:
-        constraints = [
-            UniqueConstraint(
-                fields=['title', 'project'],
-                name='unique_issue_title_per_project'
-            )
-        ]
-
     def clean(self):
         if not self.project.contributors.filter(user=self.assigne).exists():
-            raise ValueError('l\'assignée doit être un contributeur du projet')
+            raise ValidationError(
+                'l\'assignée doit être un contributeur du projet'
+            )
 
     def __str__(self):
         return f"{self.title} - {self.project.title}"
 
 
 class Comment(models.Model):
+    """
+    Commentaire sur une issue par un contributeur du projet.
+
+    Identifié par un UUID unique et non modifiable.
+    L'auteur doit être un contributeur du projet associé.
+    """
     description = models.TextField()
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -184,7 +181,9 @@ class Comment(models.Model):
 
     def clean(self):
         if not self.project.contributors.filter(user=self.author).exists():
-            raise ValueError('l\'assignée doit être un contributeur du projet')
+            raise ValidationError(
+                'l\'assignée doit être un contributeur du projet'
+            )
 
     def __str__(self):
         return f"Comment {self.uuid} on {self.issue.title}"

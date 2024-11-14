@@ -4,7 +4,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import User
-from .serializers import UserSerializer, RegisterSerializer
+from .serializers import (
+    UserSerializer,
+    UserDetailSerializer,
+    RegisterSerializer
+)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -12,8 +16,14 @@ class UserViewSet(viewsets.ModelViewSet):
     Vue pour récuperer les informations d'un utilisateur.
     '''
     queryset = User.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return UserDetailSerializer
+        elif self.request.query_params.get('minimal') == 'true':
+            return UserSerializer
+        return UserSerializer
 
 
 class RegisterViewSet(APIView):

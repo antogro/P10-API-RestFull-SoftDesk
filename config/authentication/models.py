@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 
 # Create your models here.
 class User(AbstractUser):
-    can_be_contated = models.BooleanField(default=True)
+    can_be_contacted = models.BooleanField(default=True)
     can_data_be_shared = models.BooleanField(default=False)
     age = models.PositiveIntegerField(
         validators=[MinValueValidator(15)],

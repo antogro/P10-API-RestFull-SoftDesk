@@ -135,6 +135,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DATETIME_FORMAT': '%H:%M / %d-%m-%Y',
 }
 
 SIMPLE_JWT = {
@@ -144,3 +145,10 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'authentication.User'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
