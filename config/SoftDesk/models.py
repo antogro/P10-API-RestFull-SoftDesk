@@ -1,9 +1,8 @@
 from django.db import models
 from django.conf import settings
-from django.db.models import UniqueConstraint, Q
+from django.db.models import UniqueConstraint
 from django.core.exceptions import ValidationError
 import uuid
-# Create your models here.
 
 
 class Project(models.Model):
@@ -45,10 +44,6 @@ class Contributor(models.Model):
     Chaque projet a un unique auteur et peut avoir plusieurs contributeurs.
     Un utilisateur ne peut contribuer qu'une fois par projet.
     """
-    ROLE_CHOICE = [
-        ('AUTHOR', 'Auteur'),
-        ('CONTRIBUTOR', 'Contributeur')
-    ]
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -59,11 +54,6 @@ class Contributor(models.Model):
         on_delete=models.CASCADE,
         related_name='contributors'
     )
-    role = models.CharField(
-        max_length=11,
-        choices=ROLE_CHOICE,
-        default='CONTRIBUTOR'
-    )
 
     class Meta:
         constraints = [
@@ -71,11 +61,6 @@ class Contributor(models.Model):
                 fields=['user', 'project'],
                 name='unique_contributor_per_contribution',
             ),
-            UniqueConstraint(
-                fields=['project'],
-                condition=Q(role='AUTHOR'),
-                name='one_author_per_project',
-            )
         ]
 
     def __str__(self):
@@ -163,7 +148,8 @@ class Comment(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='authored_comment'
+        related_name='authored_comment',
+        to_field='uuid'
     )
     issue = models.ForeignKey(
         Issue,
@@ -174,6 +160,7 @@ class Comment(models.Model):
         auto_now_add=True
     )
     uuid = models.UUIDField(
+        primary_key=True,
         default=uuid.uuid4,
         editable=False,
         unique=True

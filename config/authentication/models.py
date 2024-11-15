@@ -2,10 +2,16 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
+import uuid
 
 
 # Create your models here.
 class User(AbstractUser):
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+    )
     can_be_contacted = models.BooleanField(default=True)
     can_data_be_shared = models.BooleanField(default=False)
     age = models.PositiveIntegerField(

@@ -16,16 +16,11 @@ class ContributorSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "user_id",
-            "role"]
+        ]
         read_only_fields = ["id"]
         extra_kwargs = {"project": {"required": False}}
 
     def validate(self, data):
-        if data.get("role") == "AUTHOR":
-            raise serializers.ValidationError(
-                "Un auteur doit avoir la permission d'écrire"
-            )
-
         # Vérifier si l'utilisateur est déjà contributeur
         existing_contributor = Contributor.objects.filter(
             user=data['user'],
@@ -86,7 +81,6 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 class IssueListSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    assigne = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     project = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(),
         write_only=True,
@@ -99,7 +93,6 @@ class IssueListSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "author",
-            "assigne",
             "created_time",
             "status",
             "project",
@@ -109,14 +102,6 @@ class IssueListSerializer(serializers.ModelSerializer):
             "id",
             "created_time"
         ]
-
-    def validate_assigne(self, data):
-        project = self.context.get("project")
-        if project and not project.contributors.filter(user=data).exists():
-            raise serializers.ValidationError(
-                "L'utilisateur assigné doit être un contributeur du projet"
-            )
-        return data
 
 
 class IssueCreateSerializer(serializers.ModelSerializer):
@@ -186,14 +171,13 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = [
-            "id",
+            "uuid",
             "description",
             "author",
             "issue",
             "created_time",
-            "uuid"
         ]
-        read_only_fields = ["id", "created_time", "uuid"]
+        read_only_fields = ["uuid", "created_time"]
 
     def validate_author(self, data):
         project = self.context.get("project")
