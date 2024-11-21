@@ -1,65 +1,56 @@
-# SoftDesk - API Rest Full
+# SoftDesk - API REST pour la Gestion de Projets 🚀
 
-## 🌟 Introduction
+## 📖 Introduction
 
-SoftDesk est une application web qui permet de gérer des projets, des tickets d'assistance et des commentaires associés.
-Cette application est construite avec le framework Django Rest Framework (DRF) et utilise une architecture d'API REST.
+SoftDesk est une solution professionnelle de gestion de projets et de support technique, conçue pour optimiser la collaboration des équipes de développement. Cette API REST, construite avec Django Rest Framework, permet de :
+
+- Gérer efficacement les projets et leurs équipes
+- Suivre et résoudre les problèmes via un système de tickets (Issue)
+- Faciliter la communication avec un système de commentaires
+
+## 🛠 Technologies Utilisées
+
+- **Backend Framework**: Django 4.2+
+- **API Framework**: Django Rest Framework 3.14+
+- **Base de données**: SQLite (développement) / PostgreSQL (production recommandée)
+- **Authentication**: JWT (JSON Web Tokens)
 
 ## ✨ Fonctionnalités
 
-- Gestion des projets avec :
-  - Titre
-  - Description
-  - Type
-  - Date de création
+### Gestion de Projets
+- Création et gestion de projets avec métadonnées complètes
+- Selection du type de projet (Back-end, Front-end, IOS, Android)
+- Système de permissions basé sur les rôles :
+    - Autheur pour la lecture, la modification, et la suppression des projets
+    - Contributeur pour la lecture des projets
 
-- Gestion des contributeurs pour chaque projet
-- Gestion des tickets (issues) avec :
-  - Titre
-  - Description
-  - Priorité
-  - Statut
-  - Date de création
+### Gestion des Issues
+- Système de priorité configurable (Faible, Moyen, Elevé)
+- Statuts personnalisables (À faire, En cours, Terminé)
+- Tag personnalisables (Bug, fonctionnalité, Tâche)
+- Attribution à un membre des contributeurs du projet
+- lié à un projet
 
-- Gestion des commentaires associés aux tickets
-  - Uuid
-  - Texte
-  - Date de création
+### Système de Commentaires
+- Fils de discussion par Issue
+- Commentaires avec possibilité d'éditer ou supprimer
+- Lié à une Issue
 
-## 📊 Modèles de Données
+### Gestion des contributeurs
+- Ajout et gestion des contributeurs à un projet
+- Lié à un projet
+
+## 📊 Architecture des Données
 
 ### Modèle Project
-- `title` : Titre du projet
-- `description` : Description du projet
-- `type` : Type de projet
-- `created_time` : Date de création du projet
-- `author` : Utilisateur qui a créé le projet (relation 1-N)
-- `contributors` : Liste des contributeurs du projet (relation M-N)
-
-### Modèle Issue
-- `title` : Titre du ticket
-- `description` : Description du ticket
-- `priority` : Priorité du ticket
-- `status` : Statut du ticket
-- `created_time` : Date de création du ticket
-- `author` : Utilisateur qui a créé le ticket (relation 1-N)
-- `project` : Projet auquel le ticket est associé (relation 1-N)
-
-### Modèle Comment
-- `description` : Contenu du commentaire
-- `created_time` : Date de création du commentaire
-- `author` : Utilisateur qui a écrit le commentaire (relation 1-N)
-- `issue` : Ticket auquel le commentaire est associé (relation 1-N)
-
-### Modèle Contributor
-- `user` : Utilisateur qui est contributeur (relation 1-N)
-- `project` : Projet auquel l'utilisateur est contributeur (relation 1-N)
-- `role` : Rôle du contributeur (non implémenté dans cette version)
-
-### Modèle User
-- `can_be_contacted` : Indique si l'utilisateur peut être contacté
-- `can_data_be_shared` : Indique si les données de l'utilisateur peuvent être partagées
-- `age` : Âge de l'utilisateur
+```python
+class Project(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    created_time = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE related_name='authored_projects')
+```
 
 ## 🌐 API Endpoints
 
@@ -70,65 +61,205 @@ L'application expose les endpoints suivants :
 - `/api/projects/<project_pk>/issues/` : Gestion des tickets
 - `/api/projects/<project_pk>/issues/<issue_pk>/comments/` : Gestion des commentaires
 
-## 🔒 Sécurité et Authentification
+#### Exemple de Réponse (GET /api/projects/)
+```json
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "title": "Projet Test",
+            "description": "Description du projet",
+            "type": "BACKEND",
+            "created_time": "2024-03-19T14:30:00Z",
+            "author": {
+                "id": 1,
+                "username": "john_doe"
+            },
+            "contributors_count": 3
+        }
+    ]
+}
+```
 
-- Authentification via le système Django
-- Seuls les utilisateurs authentifiés peuvent accéder à l'API
-- Permissions spécifiques :
-  - Seul l'auteur peut mettre à jour/supprimer un projet
-  - Seuls les contributeurs peuvent gérer les tickets et commentaires
+
+## 🔒 Authentification et Sécurité
+
+### Système d'Authentication
+- Utilisation de JWT (JSON Web Tokens)
+- Durée de validité des tokens : 1h
+- Refresh token disponible pour renouvellement
+
+
+### Exemple d'Authentication
+```bash
+# Obtenir un token
+curl -X POST http://localhost:8000/api/token/ \
+    -H "Content-Type: application/json" \
+    -d '{"username": "user", "password": "pass"}'
+
+# Utiliser le token
+curl -X GET http://localhost:8000/api/projects/ \
+    -H "Authorization: Bearer <votre_token>"
+```
+
+## 🛡️ Sécurité
+
+L'application répond aux exigences OWASP en matière de sécurité :
+
+1. **Authentification et Autorisation**
+   - Utilisation de JWT avec expiration
+   - Validation des permissions à chaque requête
+   - Protection contre les attaques par force brute
+
+2. **Protection des Données**
+   - Hashage sécurisé des mots de passe avec Django
+   - Validation des données entrantes
+   - Protection CSRF 
+   
+
+3. **Conformité RGPD**
+   - Consentement explicite pour la collecte de données
+   - Possibilité de supprimer son compte
+   - Contrôle des données partagées
+
 
 ## 🚀 Installation
 
 ### Prérequis
-
 - Python 3.9+
 - pip
-- pipenv (pour gérer les dépendances)
+- git
+- Pipenv
 
-### Étapes d'installation
+### Installation en Développement
 
-1. Clonez le dépôt :
+1. **Cloner le projet**
 ```bash
-git clone https://github.com/votre-compte/SoftDesk.git
+git clone https://github.com/antogro/P10-API-RestFull-SoftDesk.git
+cd P10-API-RestFull-SoftDesk
 ```
 
-    Accédez au répertoire du projet :
-
+2. **Crèer et activer l'environnement virtuel**
+  ### Windows
 ```bash
-cd SoftDesk
+python -m venv env
+env\Scripts\activate
 ```
-    Installez les dépendances avec pipenv :
+
+  ### Linux/MacOS
 ```bash
-pipenv install
+python3 -m venv env
+source env/bin/activate
 ```
-    Configurez les variables d'environnement :
 
+3. **Configurer l'environnement avec Pipenv**
 ```bash
-# Créez un fichier .env à la racine du projet
-DEBUG=True
-SECRET_KEY=votre-cle-secrete
-DATABASE_URL=sqlite:///db.sqlite3
-```
-    Initialisez la base de données :
+# Installer Pipenv si nécessaire
+pip install pipenv
 
+# Installer les dépendances avec Pipenv
+python -m pipenv install
+
+# Activer l'environnement virtuel
+pipenv shell
+```
+
+4. **Initialiser la base de données**
 ```bash
-pipenv run python manage.py migrate
-pipenv run python manage.py createsuperuser
+cd config
+python manage.py migrate
+python manage.py createsuperuser
 ```
-    Lancez le serveur :
 
-```bash
-python manage.py runserver
+
+## 📝 Exemples d'Utilisation avec Postman
+
+### 1. Création d'un Utilisateur
+
+#### Requête
+- **URL**: `POST http://127.0.0.1:8000/api/users/`
+- **Headers**: 
+  ```
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  {
+    "username": "john_doe",
+    "password": "Secure@Password123",
+    "email": "john@example.com",
+    "can_be_contacted": true,
+    "can_data_be_shared": false,
+    "age": 30
+  }
+  ```
+
+#### Réponse
+```json
+{
+  "id": 1,
+  "username": "john_doe",
+  "email": "john@example.com",
+  "can_be_contacted": true,
+  "can_data_be_shared": false
+}
 ```
-🔍 Utilisation de l'API
 
-Accédez à l'API à l'adresse : http://127.0.0.1:8000/api/
+### 2. Authentification
 
-Exemple de requête :
+#### Requête
+- **URL**: `POST http://127.0.0.1:8000/api/token/`
+- **Headers**: 
+  ```
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  {
+    "username": "john_doe",
+    "password": "Secure@Password123"
+  }
+  ```
 
-```bash
-curl http://127.0.0.1:8000/api/projects/ \
-
-     -H "Authorization: Token votre-jeton-d-authentification"
+#### Réponse
+```json
+{
+  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+}
 ```
+
+### 3. Création d'un Projet (Authentifié)
+
+#### Requête
+- **URL**: `POST http://127.0.0.1:8000/api/projects/`
+- **Headers**: 
+  ```
+  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+  Content-Type: application/json
+  ```
+- **Body**:
+  ```json
+  {
+    "title": "Nouveau Projet",
+    "description": "Description du projet",
+    "type": "BACKEND"
+  }
+  ```
+
+## 🐛 Gestion des Erreurs
+
+| Code | Description | Solution |
+|------|-------------|----------|
+| 401 | Non authentifié | Vérifier le token d'authentification |
+| 403 | Non autorisé | Vérifier les permissions de l'utilisateur |
+| 404 | Ressource non trouvée | Vérifier l'ID de la ressource |
+| 500 | Erreur serveur | Contacter l'administrateur |
+
+
+## 👤 Autheur
+Développé par [antogro](https://github.com/antogro/)
+

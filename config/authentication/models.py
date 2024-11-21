@@ -5,8 +5,19 @@ from django.core.exceptions import ValidationError
 import uuid
 
 
-# Create your models here.
 class User(AbstractUser):
+    '''
+    Modèle utilisateur personnalisé étendant AbstractUser de Django.
+
+    Ajoute des champs pour :
+    - UUID : Identifiant unique pour chaque utilisateur
+    - Préférences de contact : indique si l'utilisateur peut être contacté
+    - Préférences de partage de données : 
+        indique si les données utilisateur peuvent être partagées
+    - Âge : Âge de l'utilisateur (minimum 15 ans)
+
+    Valide que les utilisateurs ont au moins 15 ans
+    '''
     uuid = models.UUIDField(
         default=uuid.uuid4,
         editable=False,

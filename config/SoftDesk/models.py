@@ -39,7 +39,7 @@ class Project(models.Model):
 
 class Contributor(models.Model):
     """
-    Association entre un utilisateur et un projet avec un rôle.
+    Association entre un utilisateur et un projet.
 
     Chaque projet a un unique auteur et peut avoir plusieurs contributeurs.
     Un utilisateur ne peut contribuer qu'une fois par projet.
