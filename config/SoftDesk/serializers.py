@@ -43,7 +43,6 @@ class ProjectListSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
-            "description",
             "author",
             "type",
             "created_time"
@@ -74,7 +73,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_contributors(self, obj):
         # Exclure l'auteur de la liste des contributeurs
         return ContributorSerializer(
-            obj.contributors.exclude(user=obj.author),
+            obj.contributors.all(),
             many=True
         ).data
 
@@ -94,6 +93,7 @@ class IssueListSerializer(serializers.ModelSerializer):
             "title",
             "author",
             "created_time",
+            "description",
             "status",
             "project",
             "priority",
@@ -136,8 +136,8 @@ class IssueCreateSerializer(serializers.ModelSerializer):
 
 class IssueDetailSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    assigne = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    project = serializers.PrimaryKeyRelatedField(read_only=True)
+    assigned_user = UserSerializer(source='assigne', read_only=True)
+    project = ProjectListSerializer(read_only=True)
 
     class Meta:
         model = Issue
@@ -146,7 +146,7 @@ class IssueDetailSerializer(serializers.ModelSerializer):
             "title",
             "description",
             'author',
-            "assigne",
+            "assigned_user",
             "project",
             "priority",
             "status",

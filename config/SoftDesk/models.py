@@ -167,7 +167,8 @@ class Comment(models.Model):
     )
 
     def clean(self):
-        if not self.project.contributors.filter(user=self.author).exists():
+        if not self.issue.project.contributors.filter(
+                user=self.author).exists():
             raise ValidationError(
                 'l\'assignée doit être un contributeur du projet'
             )

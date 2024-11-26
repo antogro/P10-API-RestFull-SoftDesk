@@ -12,7 +12,7 @@ class User(AbstractUser):
     Ajoute des champs pour :
     - UUID : Identifiant unique pour chaque utilisateur
     - Préférences de contact : indique si l'utilisateur peut être contacté
-    - Préférences de partage de données : 
+    - Préférences de partage de données :
         indique si les données utilisateur peuvent être partagées
     - Âge : Âge de l'utilisateur (minimum 15 ans)
 

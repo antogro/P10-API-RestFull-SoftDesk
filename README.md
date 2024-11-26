@@ -1,5 +1,20 @@
 # SoftDesk - API REST pour la Gestion de Projets 🚀
 
+## 📖 Table des Matières
+1. [Introduction](#introduction)
+2. [Technologies Utilisées](#technologies-utilisées)
+3. [Installation en Développement](#installation)
+4. [Fonctionnalités](#fonctionnalités)
+5. [Architecture des Données](#architecture-des-données)
+6. [API Endpoints](#api-endpoints)
+7. [Authentification et Sécurité](#authentification-et-sécurité)
+8. [Installation](#installation)
+9. [Exemples d'Utilisation avec Postman](#exemples-dutilisation-avec-postman)
+10. [Gestion des Erreurs](#gestion-des-erreurs)
+11. [Auteur](#auteur)
+
+
+
 ## 📖 Introduction
 
 SoftDesk est une solution professionnelle de gestion de projets et de support technique, conçue pour optimiser la collaboration des équipes de développement. Cette API REST, construite avec Django Rest Framework, permet de :
@@ -10,10 +25,54 @@ SoftDesk est une solution professionnelle de gestion de projets et de support te
 
 ## 🛠 Technologies Utilisées
 
-- **Backend Framework**: Django 4.2+
+- **Backend Framework**: Django 5.1.3
 - **API Framework**: Django Rest Framework 3.14+
 - **Base de données**: SQLite (développement) / PostgreSQL (production recommandée)
 - **Authentication**: JWT (JSON Web Tokens)
+
+## 🚀 Installation
+
+### Prérequis
+- Python 3.9+
+- pip
+- git
+- Pipenv
+
+### Installation en Développement
+
+1. **Cloner le projet**
+```bash
+git clone https://github.com/antogro/P10-API-RestFull-SoftDesk.git
+cd P10-API-RestFull-SoftDesk
+```
+
+2. **Configurer l'environnement avec Pipenv**
+```bash
+# Installer Pipenv si nécessaire
+pip install pipenv
+
+# Installer les dépendances avec Pipenv
+python -m pipenv install
+
+# Activer l'environnement virtuel
+pipenv shell
+```
+
+3. **Initialiser la base de données**
+```bash
+cd config
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+4. **Lancer le serveur de développement**
+```bash
+python manage.py runserver
+```
+*Explication* : Cette commande démarre le serveur de développement Django,
+qui vous permet d'accéder à l'application localement via votre navigateur à
+l'adresse suivante : **http://127.0.0.1:8000/**. Vous pouvez l'utiliser pour tester
+l'application sur votre machine avant de la déployer en production.
 
 ## ✨ Fonctionnalités
 
@@ -21,7 +80,7 @@ SoftDesk est une solution professionnelle de gestion de projets et de support te
 - Création et gestion de projets avec métadonnées complètes
 - Selection du type de projet (Back-end, Front-end, IOS, Android)
 - Système de permissions basé sur les rôles :
-    - Autheur pour la lecture, la modification, et la suppression des projets
+    - Auteur pour la lecture, la modification, et la suppression des projets
     - Contributeur pour la lecture des projets
 
 ### Gestion des Issues
@@ -105,7 +164,7 @@ curl -X GET http://localhost:8000/api/projects/ \
     -H "Authorization: Bearer <votre_token>"
 ```
 
-## 🛡️ Sécurité
+### 🛡️ Sécurité
 
 L'application répond aux exigences OWASP en matière de sécurité :
 
@@ -117,8 +176,6 @@ L'application répond aux exigences OWASP en matière de sécurité :
 2. **Protection des Données**
    - Hashage sécurisé des mots de passe avec Django
    - Validation des données entrantes
-   - Protection CSRF 
-   
 
 3. **Conformité RGPD**
    - Consentement explicite pour la collecte de données
@@ -126,53 +183,6 @@ L'application répond aux exigences OWASP en matière de sécurité :
    - Contrôle des données partagées
 
 
-## 🚀 Installation
-
-### Prérequis
-- Python 3.9+
-- pip
-- git
-- Pipenv
-
-### Installation en Développement
-
-1. **Cloner le projet**
-```bash
-git clone https://github.com/antogro/P10-API-RestFull-SoftDesk.git
-cd P10-API-RestFull-SoftDesk
-```
-
-2. **Crèer et activer l'environnement virtuel**
-  ### Windows
-```bash
-python -m venv env
-env\Scripts\activate
-```
-
-  ### Linux/MacOS
-```bash
-python3 -m venv env
-source env/bin/activate
-```
-
-3. **Configurer l'environnement avec Pipenv**
-```bash
-# Installer Pipenv si nécessaire
-pip install pipenv
-
-# Installer les dépendances avec Pipenv
-python -m pipenv install
-
-# Activer l'environnement virtuel
-pipenv shell
-```
-
-4. **Initialiser la base de données**
-```bash
-cd config
-python manage.py migrate
-python manage.py createsuperuser
-```
 
 
 ## 📝 Exemples d'Utilisation avec Postman
@@ -260,6 +270,6 @@ python manage.py createsuperuser
 | 500 | Erreur serveur | Contacter l'administrateur |
 
 
-## 👤 Autheur
+## 👤 Auteur
 Développé par [antogro](https://github.com/antogro/)
 

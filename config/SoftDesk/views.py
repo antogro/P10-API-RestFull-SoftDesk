@@ -1,11 +1,15 @@
 from rest_framework import viewsets, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-from SoftDesk.permissions import IsAuthorOrReadOnly
+from SoftDesk.permissions import (
+    IsContributorOrAuthor,
+    IsContributorOrAuthorForComment,
+    IsContributorOrAuthorForIssue,
+    IsContributorForRemoval
+)
 from rest_framework.response import Response
 from .models import Contributor, Project, Issue, Comment
-from django.db.models import Q
 from .serializers import (
     ProjectDetailSerializer,
     IssueCreateSerializer,
@@ -67,14 +71,15 @@ class ProjectViewset(BaseViewSet):
     - Les utilisateurs authentifiés peuvent lire tous les projets.
     - Seul l'auteur du projet peut le mettre à jour ou le supprimer.
     """
-    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+    permission_classes = [
+        IsAuthenticated,
+        IsContributorOrAuthor
+    ]
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return Project.objects.filter(
-            Q(author=self.request.user)
-            |
-            Q(contributors__user=self.request.user)
+            contributors__user=self.request.user
         ).distinct().order_by('created_time')
 
     def get_serializer_class(self):
@@ -92,35 +97,68 @@ class ProjectViewset(BaseViewSet):
 
 class ContributorViewSet(BaseViewSet):
     """
-    Gère les contributeurs d'un projet.
-    - Accès : l'auteur du projet peut ajouter ou supprimer des contributeurs.
-    - L'auteur ne peut pas être ajouté comme contributeur.
+    Vue pour gérer les commentaires associés à une issue.
+    - Accès : les contributeurs peuvent ajouter des commentaires,
+      seul l'auteur d'un commentaire peut le modifier ou le supprimer.
     """
-    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+    permission_classes = [IsAuthenticated, IsContributorForRemoval]
     serializer_class = ContributorSerializer
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return Contributor.objects.filter(
-            project__id=self.kwargs["project_pk"])
+            project__id=self.kwargs["project_pk"]
+        ).order_by('id')
 
     def perform_create(self, serializer):
         project = Project.objects.get(id=self.kwargs["project_pk"])
         user = serializer.validated_data['user']
 
-        # Vérifier si l'utilisateur est l'auteur du projet
+        if project.author != self.request.user:
+            raise PermissionDenied(
+                "Only the project author can add contributors."
+            )
+
         if project.author == user:
-            raise ValidationError(
+            raise PermissionDenied(
                 "The project author cannot be added as a contributor."
             )
 
-        # Vérifier si l'utilisateur est déjà contributeur
         if Contributor.objects.filter(project=project, user=user).exists():
-            raise ValidationError(
+            raise PermissionDenied(
                 "This user is already a contributor to this project."
             )
 
         serializer.save(project=project)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            project = instance.project
+
+            if request.user != project.author:
+                return Response(
+                    {
+                        "error": "Only the project "
+                        "author can remove contributors."
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            user_name = instance.user.username
+            self.perform_destroy(instance)
+            return Response(
+                {
+                    "message": f"Contributor {user_name} "
+                    "was successfully removed from the project."
+                },
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class IssueViewSet(BaseViewSet):
@@ -128,23 +166,45 @@ class IssueViewSet(BaseViewSet):
     Vue pour gérer les issues (tickets) associés à un projet.
     - Accès : les contributeurs du projet peuvent voir et créer des issues.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsContributorOrAuthorForIssue
+    ]
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Issue.objects.filter(
-            project__id=self.kwargs["project_pk"]
-        ).order_by('created_time')
+        project_id = self.kwargs["project_pk"]
+
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            raise PermissionDenied("No Project matches the given query.")
+
+        if not (
+            project.author == self.request.user or
+            project.contributors.filter(user=self.request.user).exists()
+        ):
+            raise PermissionDenied(
+                "You do not have permission to view issues for this project."
+            )
+
+        return Issue.objects.filter(project=project).order_by('created_time')
 
     def get_serializer_class(self):
         if self.action == "create":
             return IssueCreateSerializer
-        elif self.action in ["list", "retrieve"]:
+        elif self.action == "list":
             return IssueListSerializer
+        elif self.action == "retrieve":
+            return IssueDetailSerializer
         return IssueDetailSerializer
 
     def perform_create(self, serializer):
-        project = Project.objects.get(id=self.kwargs["project_pk"])
+        try:
+            project = Project.objects.get(id=self.kwargs["project_pk"])
+        except Project.DoesNotExist:
+            raise PermissionDenied("No Project matches the given query.")
+
         serializer.save(author=self.request.user, project=project)
 
 
@@ -154,27 +214,71 @@ class CommentViewSet(BaseViewSet):
     - Accès : les contributeurs peuvent ajouter des commentaires,
       seul l'auteur d'un commentaire peut le modifier ou le supprimer.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        IsContributorOrAuthorForComment
+    ]
     serializer_class = CommentSerializer
     pagination_class = StandardResultsSetPagination
-
-    def retrieve(self, request, *args, **kwargs):
-        uuid = kwargs.get('uuid')
-        try:
-            comment = Comment.objects.get(uuid=uuid)
-            serializer = self.get_serializer(comment)
-            return Response(serializer.data)
-        except Comment.DoesNotExist:
-            return Response(
-                {"error": "Comment not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+    lookup_field = 'uuid'
 
     def get_queryset(self):
-        return Comment.objects.filter(
-            issue__id=self.kwargs["issue_pk"]
-        ).order_by('created_time')
+        """
+        Récupère les commentaires d'une issue en vérifiant les permissions
+        """
+        project_id = self.kwargs.get("project_pk")
+        issue_id = self.kwargs.get("issue_pk")
+
+        try:
+            project = Project.objects.get(id=project_id)
+
+            issue = Issue.objects.get(
+                id=issue_id,
+                project=project
+            )
+
+            if not (
+                project.author == self.request.user or
+                project.contributors.filter(user=self.request.user).exists()
+            ):
+                raise PermissionDenied(
+                    "You don't have the permission to modify this comment."
+                )
+
+            return Comment.objects.filter(
+                issue=issue
+            ).order_by('created_time')
+
+        except (Project.DoesNotExist, Issue.DoesNotExist):
+            raise PermissionDenied("Project or issue not found.")
 
     def perform_create(self, serializer):
-        issue = Issue.objects.get(id=self.kwargs["issue_pk"])
-        serializer.save(author=self.request.user, issue=issue)
+        """
+        Création d'un commentaire avec vérifications
+        """
+        project_id = self.kwargs.get("project_pk")
+        issue_id = self.kwargs.get("issue_pk")
+
+        try:
+            project = Project.objects.get(id=project_id)
+
+            if not (
+                project.author == self.request.user or
+                project.contributors.filter(user=self.request.user).exists()
+            ):
+                raise PermissionDenied(
+                    "You don't have the permission to comment this ."
+                )
+
+            issue = Issue.objects.get(
+                id=issue_id,
+                project=project
+            )
+
+            serializer.save(
+                author=self.request.user,
+                issue=issue
+            )
+
+        except (Project.DoesNotExist, Issue.DoesNotExist):
+            raise PermissionDenied("Project or issue not found.")
