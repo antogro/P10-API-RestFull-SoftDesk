@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from SoftDesk.models import Project, Contributor, Issue, Comment
+from SoftDesk.models import Project, Contributor
 
 
 class BaseProjectPermission(BasePermission):
@@ -28,39 +28,39 @@ class IsContributorOrAuthor(BaseProjectPermission):
     """
     Permission pour les projets.
     - Lecture : Contributeurs et auteurs du projet.
-    - Écriture : Seul l'auteur du projet.
+    - Modification/Suppression : Seul l'auteur du projet.
     """
     def has_permission(self, request, view):
-        if view.action in ["create", "list", "retrieve"]:
+        if view.action in ["create", "list"]:
             return request.user.is_authenticated
 
         project_pk = view.kwargs.get('project_pk') or view.kwargs.get('pk')
 
-        if project_pk:
-            return (
-                Contributor.objects.filter(
-                    project_id=project_pk,
-                    user=request.user
-                ).exists() or
-                Project.objects.filter(
-                    id=project_pk,
-                    author=request.user
-                ).exists()
-            )
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return Contributor.objects.filter(
+                project_id=project_pk,
+                user=request.user
+            ).exists() or Project.objects.filter(
+                id=project_pk,
+                author=request.user
+            ).exists()
+
+        if view.action in ['update', 'partial_update', 'destroy']:
+            return Project.objects.filter(
+                id=project_pk,
+                author=request.user
+            ).exists()
+
         return False
 
     def has_object_permission(self, request, view, obj):
-        if isinstance(obj, Project):
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
             return (
-                obj.author == request.user
-                or
+                obj.author == request.user or
                 obj.contributors.filter(user=request.user).exists()
             )
 
-        if isinstance(obj, (Issue, Comment)):
-            return self.is_contributor_or_author(request, obj.project)
-
-        return False
+        return obj.author == request.user
 
 
 class IsContributorForRemoval(BasePermission):
