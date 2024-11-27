@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from SoftDesk.models import Project
+from SoftDesk.models import Project, Contributor, Issue, Comment
 
 
 class BaseProjectPermission(BasePermission):
@@ -26,22 +26,41 @@ class BaseProjectPermission(BasePermission):
 
 class IsContributorOrAuthor(BaseProjectPermission):
     """
-    Permission for projects.
-    - Lecture: Auteur et contributeur
-    - Ecriture: Auteur
+    Permission pour les projets.
+    - Lecture : Contributeurs et auteurs du projet.
+    - Écriture : Seul l'auteur du projet.
     """
     def has_permission(self, request, view):
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            return True
+        if view.action in ["create", "list", "retrieve"]:
+            return request.user.is_authenticated
+
+        project_pk = view.kwargs.get('project_pk') or view.kwargs.get('pk')
+
+        if project_pk:
+            return (
+                Contributor.objects.filter(
+                    project_id=project_pk,
+                    user=request.user
+                ).exists() or
+                Project.objects.filter(
+                    id=project_pk,
+                    author=request.user
+                ).exists()
+            )
         return False
 
     def has_object_permission(self, request, view, obj):
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            return self.is_contributor_or_author(request, obj)
+        if isinstance(obj, Project):
+            return (
+                obj.author == request.user
+                or
+                obj.contributors.filter(user=request.user).exists()
+            )
 
-        if hasattr(obj, 'project'):
-            return obj.project.author == request.user
-        return obj.author == request.user
+        if isinstance(obj, (Issue, Comment)):
+            return self.is_contributor_or_author(request, obj.project)
+
+        return False
 
 
 class IsContributorForRemoval(BasePermission):
@@ -50,7 +69,6 @@ class IsContributorForRemoval(BasePermission):
     Seul l'auteur du projet peut supprimer un contributeur
     """
     def has_permission(self, request, view):
-        # Assuming the project_pk is in the URL kwargs
         if 'project_pk' in view.kwargs:
             try:
                 project = Project.objects.get(id=view.kwargs['project_pk'])
