@@ -31,7 +31,7 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'update', 'partial_update']:
             return UserDetailSerializer
         elif self.request.query_params.get('minimal') == 'true':
             return UserSerializer
